@@ -3,9 +3,109 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="">
-  <title>Mynk Labs</title>
+  <meta name="description" content="Mynk Labs local PC API connection test.">
+  <meta name="theme-color" content="#080c17">
+  <title>Mynk Labs — PC API Test</title>
+  <style>
+    :root{color-scheme:dark;--bg:#080c17;--panel:#101626;--line:#27314a;--ink:#f4f6ff;--muted:#a5aec5;--accent:#9c8aff;--cyan:#6fdcf0}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% 0%,#22204b 0,transparent 40%),var(--bg);color:var(--ink);font:16px/1.6 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+    main{width:min(900px,calc(100% - 32px));margin:auto;padding:34px 0 64px}.brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:-.04em}.mark{display:grid;place-items:center;width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#8c6bff,#4ac8e8);font-size:19px}
+    .eyebrow{display:inline-flex;gap:9px;align-items:center;border:1px solid var(--line);background:#101626;border-radius:999px;padding:7px 12px;color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;margin-top:66px}
+    .dot{width:7px;height:7px;background:#f5b84b;border-radius:50%}h1{font-size:clamp(38px,7vw,68px);line-height:1.02;letter-spacing:-.065em;margin:22px 0 16px}.gradient{background:linear-gradient(100deg,#b2a2ff,#6fdcf0);background-clip:text;color:transparent}
+    .lead{max-width:650px;color:var(--muted);font-size:17px}.panel{margin-top:34px;border:1px solid var(--line);background:rgba(16,22,38,.9);border-radius:24px;padding:clamp(20px,4vw,32px);box-shadow:0 20px 70px #0003}
+    .panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}.panel h2{margin:0;font-size:22px;letter-spacing:-.04em}.muted{color:var(--muted);font-size:13px}
+    button{margin-top:22px;border:0;border-radius:999px;padding:13px 19px;background:linear-gradient(100deg,#8c6bff,#4aafcf);color:#fff;font-weight:800;font-size:14px;cursor:pointer}button:disabled{opacity:.6;cursor:wait}
+    .state{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);padding:6px 10px;border-radius:999px;color:var(--muted);font-size:11px;font-weight:800}.state.ok{color:#78e0b6;border-color:#28664e}.state.bad{color:#ffb0b0;border-color:#793e4b}
+    .checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:22px}.check{padding:16px;border:1px solid var(--line);border-radius:16px;background:#0b1120}.check strong{display:block;font-size:14px}.check span{display:block;color:var(--muted);font-size:12px;margin-top:4px;overflow-wrap:anywhere}.foot{margin-top:20px;color:var(--muted);font-size:12px}.note{border-left:3px solid var(--accent);padding:10px 14px;background:#17152b;border-radius:0 10px 10px 0;margin-top:22px;color:#d5d0ff;font-size:13px}
+    @media(max-width:600px){.eyebrow{margin-top:45px}.checks{grid-template-columns:1fr}.panel-head{display:block}.state{margin-top:12px}}
+  </style>
 </head>
 <body>
+  <main>
+    <div class="brand"><span class="mark">M</span><span>Mynk Labs <span class="muted">/ local bridge</span></span></div>
+    <div class="eyebrow"><span class="dot" id="dot"></span><span id="eyebrow">Connection not tested</span></div>
+    <h1>Your PC.<br><span class="gradient">Your local API.</span></h1>
+    <p class="lead">Test the secure local-only bridge running on your Windows PC. This first check verifies that the API responds and that MariaDB is reachable; it does not read database records or expose your files.</p>
+    <section class="panel" aria-labelledby="panel-title">
+      <div class="panel-head">
+        <div><h2 id="panel-title">PC connection test</h2><div class="muted">Endpoint: http://127.0.0.1:5199/api/status</div></div>
+        <span class="state" id="state" aria-live="polite">NOT TESTED</span>
+      </div>
+      <button id="test" type="button">Test connection ↗</button>
+      <div class="checks">
+        <div class="check"><strong>Local API</strong><span id="api-result">Waiting for test</span></div>
+        <div class="check"><strong>MariaDB port 3306</strong><span id="db-result">Waiting for test</span></div>
+        <div class="check"><strong>Prani BCI web service</strong><span id="prani-result">Waiting for test</span></div>
+        <div class="check"><strong>Response time</strong><span id="time-result">—</span></div>
+      </div>
+      <div class="note" id="message" role="status">Keep your PC turned on and run the Mynk Labs Local API on it before testing.</div>
+      <p class="foot">Privacy: the API listens only on 127.0.0.1. No database contents, credentials, or files are returned by this test. Other visitors can only test the API on their own computer.</p>
+    </section>
+  </main>
+  <script>
+    const button = document.getElementById("test");
+    const state = document.getElementById("state");
+    const eyebrow = document.getElementById("eyebrow");
+    const dot = document.getElementById("dot");
+    const message = document.getElementById("message");
+    const setText = (id, value) => { document.getElementById(id).textContent = value; };
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      button.textContent = "Testing…";
+      state.className = "state";
+      state.textContent = "TESTING";
+      eyebrow.textContent = "Checking your PC";
+      dot.style.background = "#f5b84b";
+      message.textContent = "Requesting a response from your PC. Your browser may ask permission to access a local network service.";
+      setText("api-result", "Connecting…");
+      setText("db-result", "Checking…");
+      setText("prani-result", "Checking…");
+      setText("time-result", "Measuring…");
+      const started = performance.now();
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        let response;
+        try {
+          response = await fetch("http://127.0.0.1:5199/api/status", {
+            method: "GET",
+            mode: "cors",
+            cache: "no-store",
+            signal: controller.signal
+          });
+        } finally {
+          clearTimeout(timeout);
+        }
+        if (!response.ok) throw new Error("API returned HTTP " + response.status);
+        const data = await response.json();
+        if (!data.ok || !data.checks) throw new Error("Unexpected API response");
+        setText("api-result", "Connected · HTTP " + response.status);
+        setText("db-result", data.checks.mariadb_tcp_127_0_0_1_3306 ? "Reachable on localhost:3306" : "Not reachable");
+        setText("prani-result", data.checks.prani_bci_web_127_0_0_1_8768 ? "Reachable on localhost:8768" : "Not reachable");
+        setText("time-result", Math.round(performance.now() - started) + " ms");
+        const dbOk = data.checks.mariadb_tcp_127_0_0_1_3306;
+        state.className = "state " + (dbOk ? "ok" : "bad");
+        state.textContent = dbOk ? "API CONNECTED" : "PARTIAL CONNECTION";
+        eyebrow.textContent = dbOk ? "PC API connected" : "API online · database check failed";
+        dot.style.background = dbOk ? "#35d49a" : "#ff6b78";
+        message.textContent = dbOk
+          ? "Success: your browser reached the PC API, and the MariaDB TCP port is reachable. This confirms connectivity only—not database login or query access."
+          : "The local API responded, but MariaDB is not reachable. Check the database service before enabling data queries.";
+      } catch (error) {
+        setText("api-result", error.name === "AbortError" ? "Timed out after 5 seconds" : "Could not connect");
+        setText("db-result", "Not verified");
+        setText("prani-result", "Not verified");
+        setText("time-result", Math.round(performance.now() - started) + " ms");
+        state.className = "state bad";
+        state.textContent = "CONNECTION FAILED";
+        eyebrow.textContent = "Browser could not reach PC";
+        dot.style.background = "#ff6b78";
+        message.textContent = "Check that Mynk Labs Local API is running on this same PC. If the browser reports a local-network/CORS permission error, allow local-network access for this site and try again. Details: " + error.message;
+      } finally {
+        button.disabled = false;
+        button.textContent = "Test connection ↗";
+      }
+    });
+  </script>
 </body>
 </html>
